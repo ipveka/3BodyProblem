@@ -1,9 +1,6 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
 import sys
 import os
 import time
@@ -56,45 +53,47 @@ with st.sidebar:
                                        help="RK4: High accuracy | Euler: Simple | Verlet: Energy conserving")
     
     with st.expander("🎯 Body Management", expanded=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🎲 Random Body", use_container_width=True):
-                # Generate random body parameters with better scaling
-                mass = np.random.uniform(1e24, 1e30)  # kg
-                x = np.random.uniform(-5e8, 5e8)  # km
-                y = np.random.uniform(-5e8, 5e8)  # km
-                vx = np.random.uniform(-20, 20)   # km/s
-                vy = np.random.uniform(-20, 20)   # km/s
-                
-                # Generate random color
-                colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "lime"]
-                color = np.random.choice(colors)
-                
-                body = CelestialBody(
-                    mass=mass,
-                    position=[x, y],
-                    velocity=[vx, vy],
-                    name=f"Body {len(st.session_state.bodies) + 1}",
-                    color=color
-                )
-                st.session_state.bodies.append(body)
-                st.rerun()
-
-        with col2:
-            if st.button("🗑️ Clear All", use_container_width=True):
-                st.session_state.bodies = []
-                st.session_state.simulation_data = None
-                st.rerun()
+        # Random Body button on top
+        if st.button("🎲 Random Body", width='stretch'):
+            # Generate random body parameters with better scaling
+            mass = np.random.uniform(1e24, 1e30)  # kg
+            x = np.random.uniform(-5e8, 5e8)  # km
+            y = np.random.uniform(-5e8, 5e8)  # km
+            vx = np.random.uniform(-20, 20)   # km/s
+            vy = np.random.uniform(-20, 20)   # km/s
+            
+            # Generate random color
+            colors = ["red", "blue", "green", "orange", "purple", "cyan", "magenta", "lime"]
+            color = np.random.choice(colors)
+            
+            body = CelestialBody(
+                mass=mass,
+                position=[x, y],
+                velocity=[vx, vy],
+                name=f"Body {len(st.session_state.bodies) + 1}",
+                color=color
+            )
+            st.session_state.bodies.append(body)
+            st.rerun()
+        
+        # Clear All button below (minimal spacing)
+        if st.button("🗑️ Clear All", width='stretch'):
+            st.session_state.bodies = []
+            st.session_state.simulation_data = None
+            st.rerun()
 
 # Main content area
 st.subheader("🪐 Preset Systems")
 st.markdown("Choose from pre-configured gravitational systems:")
 
+# Add spacing before preset buttons
+st.markdown("<br>", unsafe_allow_html=True)
+
 # Preset configurations with side-by-side buttons
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    if st.button("🌍 Earth-Moon", use_container_width=True):
+    if st.button("🌍 Earth-Moon", width='stretch'):
         st.session_state.bodies = []
         # Earth at origin (stationary for simplified two-body problem)
         earth = CelestialBody(
@@ -123,7 +122,7 @@ with col1:
         st.rerun()
 
 with col2:
-    if st.button("☀️ Sun-Earth-Moon", use_container_width=True):
+    if st.button("☀️ Sun-Earth-Moon", width='stretch'):
         st.session_state.bodies = []
         # Use scaled distances for better visualization while keeping physics realistic
         # Scale factor: divide by 1000 for visualization, masses stay realistic
@@ -168,7 +167,7 @@ with col2:
         st.rerun()
 
 with col3:
-    if st.button("🛰️ Custom System", use_container_width=True):
+    if st.button("🛰️ Custom System", width='stretch'):
         st.session_state.bodies = []
         # Start with Sun-Earth-Moon system
         G = 6.67430e-11
@@ -266,7 +265,7 @@ with st.sidebar:
                 vel_x = -orbital_velocity * np.sin(angle_rad)
                 vel_y = orbital_velocity * np.cos(angle_rad)
                 
-                if st.form_submit_button("Add to System", use_container_width=True):
+                if st.form_submit_button("Add to System", width='stretch'):
                     body = CelestialBody(
                         mass=mass,
                         position=[pos_x, pos_y],
@@ -277,6 +276,9 @@ with st.sidebar:
                     st.session_state.bodies.append(body)
                     st.success(f"Added {body_name} to the system!")
                     st.rerun()
+
+# Add spacing between preset systems and current system
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Display current bodies if any exist
 if len(st.session_state.bodies) > 0:
@@ -295,10 +297,13 @@ if len(st.session_state.bodies) > 0:
             </div>
             """, unsafe_allow_html=True)
     
+    # Add spacing before Run Simulation button
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     # Run simulation button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🚀 Run Simulation", type="primary", use_container_width=True):
+        if st.button("🚀 Run Simulation", type="primary", width='stretch'):
             with st.spinner(f"Simulating {total_days:.0f} days of orbital motion..."):
                 # Create simulation
                 simulation = NBodySimulation(st.session_state.bodies)
@@ -338,10 +343,16 @@ if len(st.session_state.bodies) > 0:
 if st.session_state.simulation_data is not None:
     data = st.session_state.simulation_data
     
-    st.subheader(f"🛰️ Orbital Trajectories - {data['simulation_years']:.1f} Years ({data['total_days']:.0f} Days)")
+    # Add spacing before results section
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # Create matplotlib plot with consistent sizing
-    fig, ax = plt.subplots(figsize=(14, 10))
+    st.subheader(f"🛰️ Orbital Trajectories - {data['simulation_years']:.1f} Years ({data['total_days']:.0f} Days)")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Create beautiful Plotly plot
+    fig = go.Figure()
     
     # Calculate plot boundaries for consistent scaling
     all_positions = data['positions'].reshape(-1, 2)
@@ -351,7 +362,7 @@ if st.session_state.simulation_data is not None:
     # Add 10% margin
     x_range = x_max - x_min
     y_range = y_max - y_min
-    max_range = max(x_range, y_range)
+    max_range = max(x_range, y_range) if max(x_range, y_range) > 0 else 1
     margin = max_range * 0.1
     
     x_center = (x_max + x_min) / 2
@@ -361,69 +372,198 @@ if st.session_state.simulation_data is not None:
     for i, body in enumerate(data['bodies']):
         positions = data['positions'][:, i, :]
         
-        # Main orbital trajectory
-        ax.plot(positions[:, 0], positions[:, 1], 
-               color=body.color, linewidth=2.5, alpha=0.8, 
-               label=f'{body.name} Orbit')
+        # Ensure color is in proper format (handle hex colors)
+        body_color = body.color if body.color.startswith('#') else f'#{body.color}' if len(body.color) == 6 else body.color
         
-        # Starting position (green dot)
-        ax.plot(positions[0, 0], positions[0, 1], 
-               'o', color='green', markersize=12, 
-               markeredgecolor='black', markeredgewidth=1.5,
-               zorder=5)
+        # Main orbital trajectory with smooth lines
+        fig.add_trace(go.Scatter(
+            x=positions[:, 0],
+            y=positions[:, 1],
+            mode='lines',
+            name=f'{body.name} Orbit',
+            line=dict(
+                color=body_color,
+                width=3.5,
+                shape='spline',
+                smoothing=1.2
+            ),
+            opacity=0.8,
+            hovertemplate=f'<b>{body.name} Orbit</b><br>' +
+                         'X: %{x:,.0f} km<br>' +
+                         'Y: %{y:,.0f} km<br>' +
+                         '<extra></extra>',
+            legendgroup=body.name,
+            showlegend=True
+        ))
         
-        # Final position (red square)  
-        ax.plot(positions[-1, 0], positions[-1, 1], 
-               's', color='red', markersize=12,
-               markeredgecolor='black', markeredgewidth=1.5,
-               zorder=5)
+        # Starting position (green circle)
+        fig.add_trace(go.Scatter(
+            x=[positions[0, 0]],
+            y=[positions[0, 1]],
+            mode='markers',
+            name=f'{body.name} Start',
+            marker=dict(
+                color='#00AA00',
+                size=12,
+                symbol='circle',
+                line=dict(color='#003300', width=2),
+                opacity=0.95
+            ),
+            hovertemplate=f'<b>{body.name} Start</b><br>' +
+                         f'X: {positions[0, 0]:,.0f} km<br>' +
+                         f'Y: {positions[0, 1]:,.0f} km<extra></extra>',
+            legendgroup=body.name,
+            showlegend=False
+        ))
+        
+        # Final position (red square)
+        fig.add_trace(go.Scatter(
+            x=[positions[-1, 0]],
+            y=[positions[-1, 1]],
+            mode='markers',
+            name=f'{body.name} End',
+            marker=dict(
+                color='#CC0000',
+                size=12,
+                symbol='square',
+                line=dict(color='#660000', width=2),
+                opacity=0.95
+            ),
+            hovertemplate=f'<b>{body.name} End</b><br>' +
+                         f'X: {positions[-1, 0]:,.0f} km<br>' +
+                         f'Y: {positions[-1, 1]:,.0f} km<extra></extra>',
+            legendgroup=body.name,
+            showlegend=False
+        ))
         
         # Current body position (colored circle with label)
-        ax.plot(positions[-1, 0], positions[-1, 1], 
-               'o', color=body.color, markersize=10,
-               markeredgecolor='white', markeredgewidth=2,
-               zorder=6)
-        
-        # Add final position label
-        ax.annotate(f'{body.name}\nFinal', 
-                   xy=(positions[-1, 0], positions[-1, 1]),
-                   xytext=(10, 10), textcoords='offset points',
-                   fontsize=9, ha='left',
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor=body.color, alpha=0.7),
-                   arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+        fig.add_trace(go.Scatter(
+            x=[positions[-1, 0]],
+            y=[positions[-1, 1]],
+            mode='markers+text',
+            name=body.name,
+            marker=dict(
+                color=body_color,
+                size=18,
+                symbol='circle',
+                line=dict(color='white', width=2.5),
+                opacity=1.0
+            ),
+            text=[body.name],
+            textposition='top center',
+            textfont=dict(size=11, color=body_color, family='Arial Black'),
+            hovertemplate=f'<b>{body.name} (Final Position)</b><br>' +
+                         f'X: {positions[-1, 0]:,.0f} km<br>' +
+                         f'Y: {positions[-1, 1]:,.0f} km<extra></extra>',
+            legendgroup=body.name,
+            showlegend=False
+        ))
     
-    # Set consistent plot limits
-    ax.set_xlim(x_center - max_range/2 - margin, x_center + max_range/2 + margin)
-    ax.set_ylim(y_center - max_range/2 - margin, y_center + max_range/2 + margin)
+    # Add origin marker
+    fig.add_trace(go.Scatter(
+        x=[0],
+        y=[0],
+        mode='markers+text',
+        name='Origin',
+        marker=dict(
+            color='black',
+            size=12,
+            symbol='x',
+            line=dict(color='black', width=3),
+            opacity=0.8
+        ),
+        text=['Origin (0,0)'],
+        textposition='top right',
+        textfont=dict(size=10, color='black', family='Arial'),
+        hovertemplate='<b>Origin</b><br>X: 0 km<br>Y: 0 km<extra></extra>',
+        showlegend=False
+    ))
     
-    # Set equal aspect ratio for proper orbital shapes
-    ax.set_aspect('equal', adjustable='box')
-    ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_xlabel('Position X (km)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Position Y (km)', fontsize=12, fontweight='bold')
-    ax.set_title(f'Gravitational Orbits - {data["simulation_years"]:.1f} Earth Years', 
-                fontsize=14, fontweight='bold', pad=20)
+    # Update layout for beautiful, compact design
+    fig.update_layout(
+        title=dict(
+            text=f'Gravitational Orbits - {data["simulation_years"]:.1f} Earth Years',
+            font=dict(size=16, family='Arial', color='#1f1f1f'),
+            x=0.5,
+            xanchor='center'
+        ),
+        xaxis=dict(
+            title='Position X (km)',
+            titlefont=dict(size=12, family='Arial'),
+            tickfont=dict(size=10),
+            range=[x_center - max_range/2 - margin, x_center + max_range/2 + margin],
+            scaleanchor="y",
+            scaleratio=1,
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)',
+            zeroline=True,
+            zerolinecolor='rgba(100, 100, 100, 0.5)'
+        ),
+        yaxis=dict(
+            title='Position Y (km)',
+            titlefont=dict(size=12, family='Arial'),
+            tickfont=dict(size=10),
+            range=[y_center - max_range/2 - margin, y_center + max_range/2 + margin],
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)',
+            zeroline=True,
+            zerolinecolor='rgba(100, 100, 100, 0.5)'
+        ),
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+            font=dict(size=10),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='rgba(0, 0, 0, 0.2)',
+            borderwidth=1
+        ),
+        plot_bgcolor='#FAFAFA',
+        paper_bgcolor='white',
+        width=1200,  # Larger plot for better visibility
+        height=800,  # Larger plot for better visibility
+        margin=dict(l=80, r=150, t=80, b=80),
+        hovermode='closest',
+        template='plotly_white',
+        autosize=False
+    )
     
-    # Add scaling note if there are 3+ bodies (Sun-Earth-Moon systems)
+    # Add scaling note if there are 3+ bodies
     if len(data['bodies']) >= 3:
-        ax.text(0.02, 0.98, 'Note: Distances scaled 1000x for visualization', 
-               transform=ax.transAxes, fontsize=10, verticalalignment='top',
-               bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.7))
+        fig.add_annotation(
+            text='Note: Distances scaled 1000x for visualization',
+            xref='paper',
+            yref='paper',
+            x=0.02,
+            y=0.98,
+            showarrow=False,
+            font=dict(size=9, color='#666666'),
+            bgcolor='rgba(173, 216, 230, 0.7)',
+            bordercolor='rgba(173, 216, 230, 1)',
+            borderwidth=1,
+            borderpad=4
+        )
     
-    # Enhanced legend
-    ax.legend(fontsize=11, loc='upper right', framealpha=0.9, 
-             fancybox=True, shadow=True)
+    # Display the plot - full width for larger display
+    st.plotly_chart(fig, use_container_width=True, config={
+        'displayModeBar': True, 
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+        'toImageButtonOptions': {
+            'format': 'png',
+            'filename': 'orbital_trajectories',
+            'height': 800,
+            'width': 1200,
+            'scale': 2
+        }
+    })
     
-    # Add center of mass marker
-    ax.plot(0, 0, '+', color='black', markersize=18, markeredgewidth=4, 
-           label='Origin', zorder=7)
-    ax.annotate('Origin (0,0)', xy=(0, 0), xytext=(15, 15), 
-               textcoords='offset points', fontsize=10, fontweight='bold',
-               bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.8))
-    
-    plt.tight_layout()
-    st.pyplot(fig, use_container_width=True)
-    plt.close()
+    # Add spacing after plot
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # Final positions summary table
     st.subheader("📍 Final Positions Summary")
@@ -443,7 +583,10 @@ if st.session_state.simulation_data is not None:
             "Color": body.color
         })
     
-    df_final = st.dataframe(final_positions_data, use_container_width=True)
+    df_final = st.dataframe(final_positions_data, width='stretch')
+    
+    # Add spacing before statistics
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # Show total system statistics
     col1, col2, col3 = st.columns(3)
@@ -453,6 +596,11 @@ if st.session_state.simulation_data is not None:
         st.metric("Simulation Duration", f"{data['simulation_years']:.1f} years")
     with col3:  
         st.metric("Data Points", f"{len(data['times']):,}")
+    
+    # Add spacing before data table
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # Add data table below the plot
     st.subheader("📊 Position Data Table")
@@ -480,12 +628,10 @@ if st.session_state.simulation_data is not None:
             
             table_data.append(row)
         
-        st.dataframe(table_data, use_container_width=True)
+        st.dataframe(table_data, width='stretch')
 
 else:
-    # Welcome screen when no bodies are present
-    st.info("🌟 Welcome to the N-Body Gravitational Simulation!")
-    
+    # Getting started instructions when no bodies are present
     st.markdown("""
     ### 🚀 Getting Started
     
@@ -501,7 +647,9 @@ else:
     """)
 
 # Documentation Section
+st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 st.header("📚 Physics & Mathematics Documentation")
 
 with st.expander("🧮 Gravitational Physics", expanded=False):
@@ -618,3 +766,4 @@ st.markdown("""
 **N-Body Gravitational Simulation** - Built with Streamlit, NumPy, and SciPy  
 *Demonstrating Newtonian gravity through interactive numerical simulation*
 """)
+

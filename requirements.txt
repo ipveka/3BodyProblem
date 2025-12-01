@@ -1,0 +1,21 @@
+# 3BodyProblem N-Body Gravitational Simulation
+# Requirements file for easy installation
+
+# Core scientific computing
+numpy>=2.3.2
+scipy>=1.16.1
+
+# Visualization
+matplotlib>=3.10.5
+plotly>=6.2.0
+seaborn>=0.13.2
+
+# Data handling
+pandas>=2.3.1
+
+# Web interface
+streamlit>=1.47.1
+
+# Build tools
+setuptools>=80.9.0
+

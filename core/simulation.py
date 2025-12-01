@@ -32,7 +32,7 @@ class NBodySimulation:
         if len(bodies) < 2:
             raise ValueError("At least 2 bodies are required for simulation")
         
-        self.bodies = [body.copy() for body in bodies]  # Deep copy to avoid modifying originals
+        self.bodies = [body.copy() for body in bodies]
         self.n_bodies = len(self.bodies)
         
         # Gravitational constant in m³ kg⁻¹ s⁻²
