@@ -17,8 +17,12 @@ if sys.version_info < (3, 7):
 # Read the README file for long description
 def read_readme():
     """Read README.md file for long description."""
+    # Get the directory containing this setup.py file
+    setup_dir = os.path.dirname(os.path.abspath(__file__))
+    # README.md is in the parent directory (project root)
+    readme_path = os.path.join(setup_dir, '..', 'README.md')
     try:
-        with open('README.md', 'r', encoding='utf-8') as f:
+        with open(readme_path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
         return "N-Body Gravitational Simulation with Streamlit Interface"
@@ -26,7 +30,9 @@ def read_readme():
 # Read version from a version file or set default
 def get_version():
     """Get package version."""
-    version_file = os.path.join(os.path.dirname(__file__), 'VERSION')
+    setup_dir = os.path.dirname(os.path.abspath(__file__))
+    # VERSION file would be in the parent directory (project root)
+    version_file = os.path.join(setup_dir, '..', 'VERSION')
     if os.path.exists(version_file):
         with open(version_file, 'r') as f:
             return f.read().strip()
@@ -74,6 +80,10 @@ PERFORMANCE_REQUIREMENTS = [
     'cython>=0.29.0',  # For compiled extensions
 ]
 
+# Get project root directory (parent of src/)
+setup_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(setup_dir)
+
 setup(
     # Package metadata
     name='3BodyProblem',
@@ -91,7 +101,9 @@ setup(
     },
     
     # Package discovery
-    packages=find_packages(exclude=['tests*', 'docs*']),
+    # Since setup.py is in src/, we need to tell setuptools where to find packages
+    packages=find_packages(where=project_root, exclude=['tests*', 'docs*', 'src*']),
+    package_dir={'': project_root},
     include_package_data=True,
     
     # Requirements
@@ -228,3 +240,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] in ['install', 'develop']:
         print("Checking dependencies...")
         check_dependencies()
+
