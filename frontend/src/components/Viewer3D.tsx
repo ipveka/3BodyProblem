@@ -84,9 +84,14 @@ function readStore() {
 export default function Viewer3D() {
   const result = useStore((s) => s.result)
   const transform = useStore((s) => s.transform)
+  const viewMode = useStore((s) => s.viewMode)
+
+  const is2D = viewMode === '2D'
+  const cameraPosition: Vec3 = is2D ? [0, 0, 3.2] : [2.2, 1.6, 2.2]
 
   return (
-    <Canvas camera={{ position: [2.2, 1.6, 2.2], fov: 50 }} dpr={[1, 2]}>
+    // Remount on view-mode change so the camera resets cleanly.
+    <Canvas key={viewMode} camera={{ position: cameraPosition, fov: 50 }} dpr={[1, 2]}>
       <color attach="background" args={['#0b0d17']} />
       <ambientLight intensity={0.6} />
       <pointLight position={[5, 5, 5]} intensity={1.2} />
@@ -97,8 +102,8 @@ export default function Viewer3D() {
           <Bodies result={result} transform={transform} />
         </>
       )}
-      <gridHelper args={[4, 16, '#1e2440', '#151a2e']} />
-      <OrbitControls enablePan enableZoom enableRotate />
+      {!is2D && <gridHelper args={[4, 16, '#1e2440', '#151a2e']} />}
+      <OrbitControls enablePan enableZoom enableRotate={!is2D} />
     </Canvas>
   )
 }

@@ -6,12 +6,27 @@ const METHODS: SimRequest['method'][] = ['rk4', 'verlet', 'euler', 'scipy']
 export default function Controls() {
   const {
     presets, selectedPresetId, request, result, loading, error,
-    frame, playing, selectPreset, updateRequest, run, setFrame, setPlaying,
+    frame, playing, viewMode, selectPreset, updateRequest, run,
+    setFrame, setPlaying, setViewMode,
   } = useStore()
 
   return (
     <div className="panel">
-      <h1>🌌 N-Body Simulator</h1>
+      <div className="title-row">
+        <h1>🌌 N-Body Simulator</h1>
+        <div className="dim-toggle view-toggle">
+          {(['2D', '3D'] as const).map((m) => (
+            <button
+              key={m}
+              className={viewMode === m ? 'active' : ''}
+              onClick={() => setViewMode(m)}
+              title={`${m} camera`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label>
         Preset
