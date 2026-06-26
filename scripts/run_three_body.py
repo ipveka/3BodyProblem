@@ -60,39 +60,47 @@ def create_sun_earth_moon_system():
 
 def create_figure_eight_system():
     """
-    Create the famous figure-eight three-body solution discovered by Chenciner and Montgomery.
-    This is an approximate version of the exact solution.
+    Create the famous figure-eight three-body solution discovered by
+    Chenciner and Montgomery (2000).
+
+    Uses normalized units (G = 1, equal unit masses), so this system must be
+    run with ``NBodySimulation(bodies, G=1.0, length_unit=1.0)`` for the
+    dynamics to match the published initial conditions. The orbit is periodic
+    with period T ≈ 6.3259 in these units.
     """
     print("Creating Figure-Eight System...")
-    
-    # Approximate parameters for the figure-eight solution
-    mass = 1.0  # Normalized mass
-    
-    # Initial positions (approximate)
+
+    mass = 1.0  # normalized mass
+
+    # Published initial conditions (Chenciner & Montgomery, 2000):
+    #   x1 = -x2,  x3 = 0,  v1 = v2 = -v3 / 2
+    p = np.array([0.97000436, -0.24308753])
+    v3 = np.array([-0.93240737, -0.86473146])
+
     body1 = CelestialBody(
         mass=mass,
-        position=[-1.0, 0.0],
-        velocity=[0.347111, 0.532728],
+        position=list(p),
+        velocity=list(-v3 / 2),
         name="Body 1",
         color="red"
     )
-    
+
     body2 = CelestialBody(
         mass=mass,
-        position=[1.0, 0.0],
-        velocity=[0.347111, 0.532728],
+        position=list(-p),
+        velocity=list(-v3 / 2),
         name="Body 2",
         color="green"
     )
-    
+
     body3 = CelestialBody(
         mass=mass,
         position=[0.0, 0.0],
-        velocity=[-0.694222, -1.065456],
+        velocity=list(v3),
         name="Body 3",
         color="blue"
     )
-    
+
     return [body1, body2, body3]
 
 def create_lagrange_triangle_system():
@@ -210,15 +218,19 @@ def create_chaotic_three_body_system():
     
     return bodies
 
-def run_simulation(bodies, simulation_name, time_span=10.0, n_points=1000):
+def run_simulation(bodies, simulation_name, time_span_seconds=365 * 86400,
+                   n_points=1000, sim_kwargs=None):
     """
     Run a three-body simulation and create visualizations.
-    
+
     Args:
         bodies: List of CelestialBody objects
         simulation_name: Name for the simulation
-        time_span: Total simulation time
+        time_span_seconds: Total simulated physical time, in seconds (or in
+            normalized time units when sim_kwargs sets G/length_unit to 1).
         n_points: Number of time points
+        sim_kwargs: Optional keyword arguments forwarded to NBodySimulation
+            (e.g. ``{'G': 1.0, 'length_unit': 1.0}`` for the figure-eight orbit)
     """
     print(f"\n{'='*60}")
     print(f"Running {simulation_name}")
@@ -245,12 +257,13 @@ def run_simulation(bodies, simulation_name, time_span=10.0, n_points=1000):
     print(f"  Center of Mass Velocity: [{center_of_mass_vel[0]:.3f}, {center_of_mass_vel[1]:.3f}] km/s")
     
     # Create simulation
-    simulation = NBodySimulation(bodies)
-    
+    simulation = NBodySimulation(bodies, **(sim_kwargs or {}))
+
     # Run simulation
-    print(f"\nRunning simulation for {time_span} time units...")
-    t_span = (0, time_span)
-    t_eval = np.linspace(0, time_span, n_points)
+    print(f"\nRunning simulation for {time_span_seconds / 86400:.2f} days "
+          f"({time_span_seconds:.3g} time units)...")
+    t_span = (0, time_span_seconds)
+    t_eval = np.linspace(0, time_span_seconds, n_points)
     
     try:
         positions, velocities, times, energies = simulation.simulate(
@@ -437,20 +450,25 @@ def main():
     print("Three-Body Problem Demonstration")
     print("="*60)
     
-    # List of three-body systems to simulate
+    # List of three-body systems to simulate.
+    # Durations are in seconds, except the figure-eight, which uses normalized
+    # time units together with its G=1 / length_unit=1 simulation kwargs.
+    DAY = 86400
+    YEAR = 365 * DAY
     systems = [
-        (create_sun_earth_moon_system, "Sun-Earth-Moon System", 1.0, 1000),
-        (create_lagrange_triangle_system, "Lagrange Triangle System", 2.0, 1000),
-        (create_restricted_three_body_system, "Restricted Three-Body System", 5.0, 1500),
-        (create_figure_eight_system, "Figure-Eight System", 20.0, 2000),
-        (create_chaotic_three_body_system, "Chaotic Three-Body System", 10.0, 1500)
+        (create_sun_earth_moon_system, "Sun-Earth-Moon System", YEAR, 1000, None),                # ~1 year
+        (create_lagrange_triangle_system, "Lagrange Triangle System", 200 * DAY, 1000, None),     # ~2 orbits
+        (create_restricted_three_body_system, "Restricted Three-Body System", 12 * YEAR, 2000, None),  # ~1 Jupiter orbit
+        (create_figure_eight_system, "Figure-Eight System", 13.0, 2000, {'G': 1.0, 'length_unit': 1.0}),  # ~2 periods
+        (create_chaotic_three_body_system, "Chaotic Three-Body System", 60 * DAY, 1500, None),    # ~60 days
     ]
-    
-    for system_func, name, time_span, n_points in systems:
+
+    for system_func, name, time_span, n_points, sim_kwargs in systems:
         try:
             bodies = system_func()
             positions, velocities, times, energies = run_simulation(
-                bodies, name, time_span, n_points
+                bodies, name, time_span_seconds=time_span, n_points=n_points,
+                sim_kwargs=sim_kwargs
             )
             
             if positions is not None:

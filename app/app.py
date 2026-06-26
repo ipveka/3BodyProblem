@@ -10,8 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.body import CelestialBody
 from core.simulation import NBodySimulation
-from visualization.animate import create_animated_plot
-from visualization.plot import plot_energy_conservation, plot_trajectories
+from visualization.plot import plot_energy_conservation
 
 # Page configuration
 st.set_page_config(
@@ -594,14 +593,37 @@ if st.session_state.simulation_data is not None:
         st.metric("Total Bodies", len(data['bodies']))
     with col2:
         st.metric("Simulation Duration", f"{data['simulation_years']:.1f} years")
-    with col3:  
+    with col3:
         st.metric("Data Points", f"{len(data['times']):,}")
-    
+
+    # Energy conservation analysis
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("⚡ Energy Conservation")
+
+    energies = data['energies']
+    e_total = energies['total']
+    initial_e = e_total[0]
+    drift_pct = (abs(e_total[-1] - initial_e) / abs(initial_e) * 100
+                 if initial_e != 0 else 0.0)
+
+    ecol1, ecol2 = st.columns(2)
+    with ecol1:
+        st.metric("Relative Energy Drift", f"{drift_pct:.4f}%",
+                  help="Lower is better. A well-behaved simulation conserves "
+                       "total energy; Verlet typically drifts least over long runs.")
+    with ecol2:
+        st.metric("Integration Method", simulation_method)
+
+    energy_fig = plot_energy_conservation(data['times'], energies)
+    st.plotly_chart(energy_fig, use_container_width=True)
+
     # Add spacing before data table
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
     # Add data table below the plot
     st.subheader("📊 Position Data Table")
     with st.expander("Show Daily Position Data", expanded=False):
