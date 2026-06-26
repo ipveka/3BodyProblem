@@ -24,9 +24,8 @@ The application is organized into several key modules that separate concerns: ph
 │   └── run_three_body.py  # Three-body demonstration script
 ├── docs/                  # Documentation (this folder)
 ├── run_app.py             # Application launcher with dependency checks
-├── requirements.txt       # Python package dependencies
-├── pyproject.toml         # Project configuration
-├── setup.py               # Package installation script
+├── requirements.txt       # Python package dependencies (runtime)
+├── pyproject.toml         # Project metadata, dependencies, entry points
 └── README.md              # Project overview and quick start
 ```
 

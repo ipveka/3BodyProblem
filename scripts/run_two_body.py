@@ -98,32 +98,38 @@ def create_eccentric_orbit_system():
     
     return [central, orbiter]
 
-def run_simulation(bodies, simulation_name, time_span=10.0, n_points=1000):
+def run_simulation(bodies, simulation_name, time_span_seconds=30 * 86400,
+                   n_points=1000, sim_kwargs=None):
     """
     Run a two-body simulation and create visualizations.
-    
+
     Args:
         bodies: List of CelestialBody objects
         simulation_name: Name for the simulation
-        time_span: Total simulation time
+        time_span_seconds: Total simulated physical time, in seconds. The engine
+            works in SI-derived units (km, km/s), so time must be in seconds for
+            the orbits to evolve over a meaningful fraction of their period.
         n_points: Number of time points
+        sim_kwargs: Optional keyword arguments forwarded to NBodySimulation
+            (e.g. ``{'G': 1.0, 'length_unit': 1.0}`` for normalized systems)
     """
     print(f"\n{'='*50}")
     print(f"Running {simulation_name}")
     print(f"{'='*50}")
-    
+
     # Display initial conditions
     print("\nInitial Conditions:")
     for body in bodies:
         print(f"  {body}")
-    
+
     # Create simulation
-    simulation = NBodySimulation(bodies)
-    
+    simulation = NBodySimulation(bodies, **(sim_kwargs or {}))
+
     # Run simulation
-    print(f"\nRunning simulation for {time_span} time units...")
-    t_span = (0, time_span)
-    t_eval = np.linspace(0, time_span, n_points)
+    print(f"\nRunning simulation for {time_span_seconds / 86400:.2f} days "
+          f"({time_span_seconds:.3g} s)...")
+    t_span = (0, time_span_seconds)
+    t_eval = np.linspace(0, time_span_seconds, n_points)
     
     try:
         positions, velocities, times, energies = simulation.simulate(
@@ -210,7 +216,7 @@ def compare_integration_methods(bodies, simulation_name):
     print(f"{'='*50}")
     
     methods = ['euler', 'rk4', 'verlet']
-    time_span = 5.0
+    time_span = 30 * 86400  # 30 days, in seconds
     n_points = 500
     
     results = {}
@@ -284,18 +290,19 @@ def main():
     print("Two-Body Problem Demonstration")
     print("="*50)
     
-    # List of two-body systems to simulate
+    # List of two-body systems to simulate (durations in seconds)
+    DAY = 86400
     systems = [
-        (create_earth_moon_system, "Earth-Moon System", 30.0, 1000),
-        (create_binary_star_system, "Binary Star System", 2.0, 1000),
-        (create_eccentric_orbit_system, "Eccentric Orbit System", 5.0, 1500)
+        (create_earth_moon_system, "Earth-Moon System", 30 * DAY, 1000),          # ~1 lunar orbit
+        (create_binary_star_system, "Binary Star System", 730 * DAY, 1500),       # ~1 binary period
+        (create_eccentric_orbit_system, "Eccentric Orbit System", 1095 * DAY, 2000),  # ~2 orbits
     ]
-    
+
     for system_func, name, time_span, n_points in systems:
         try:
             bodies = system_func()
             positions, velocities, times, energies = run_simulation(
-                bodies, name, time_span, n_points
+                bodies, name, time_span_seconds=time_span, n_points=n_points
             )
             
             if positions is not None:

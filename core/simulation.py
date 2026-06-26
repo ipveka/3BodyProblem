@@ -22,21 +22,35 @@ class NBodySimulation:
     mutual gravitational attraction using various numerical integration methods.
     """
     
-    def __init__(self, bodies: List[CelestialBody]):
+    def __init__(self,
+                 bodies: List[CelestialBody],
+                 G: float = 6.67430e-11,
+                 length_unit: float = 1000.0):
         """
         Initialize the N-body simulation.
-        
+
         Args:
             bodies (List[CelestialBody]): List of celestial bodies to simulate
+            G (float): Gravitational constant in SI units (m³ kg⁻¹ s⁻²).
+                For normalized systems (e.g. the figure-eight orbit) pass
+                ``G=1.0`` together with ``length_unit=1.0``.
+            length_unit (float): Number of meters represented by one position
+                unit. Defaults to 1000.0 (positions in km). Use ``1.0`` for
+                systems expressed in normalized/SI units.
         """
         if len(bodies) < 2:
             raise ValueError("At least 2 bodies are required for simulation")
-        
+
         self.bodies = [body.copy() for body in bodies]
         self.n_bodies = len(self.bodies)
-        
-        # Gravitational constant in m³ kg⁻¹ s⁻²
-        self.G = 6.67430e-11
+
+        # Gravitational constant in SI units (m³ kg⁻¹ s⁻²)
+        self.G = G
+        # Meters per position unit (km -> 1000); keeps energies in SI Joules.
+        self.length_unit = length_unit
+        # Effective constant so acceleration comes out directly in
+        # (position_unit / s²):  a_i = G_eff * Σ_{j≠i} m_j (r_j - r_i) / |r_j - r_i|³
+        self.G_eff = G / (length_unit ** 3)
         
         # Initialize custom solvers
         self.rk4_solver = RungeKuttaSolver()
@@ -91,45 +105,36 @@ class NBodySimulation:
             np.ndarray: Acceleration vector for all bodies
         """
         accelerations = np.zeros(2 * self.n_bodies)
-        
+
         # Extract positions from state vector
         positions = np.zeros((self.n_bodies, 2))
         for i in range(self.n_bodies):
             start_idx = i * 4
             positions[i] = state[start_idx:start_idx+2]
-        
-        # Calculate gravitational forces between all pairs
+
+        # Softening length (in position units) to avoid the 1/r² singularity
+        softening = 1e-3
+
+        # Acceleration on body i from all other bodies j:
+        #   a_i = G_eff * Σ_{j≠i} m_j (r_j - r_i) / |r_j - r_i|³
+        # The mass of body i cancels out of F = m_i * a_i, so it never appears.
         for i in range(self.n_bodies):
-            total_force = np.array([0.0, 0.0])
-            
+            total_acceleration = np.array([0.0, 0.0])
+
             for j in range(self.n_bodies):
                 if i != j:
-                    # Calculate displacement vector (from body i to body j)
-                    displacement = positions[j] - positions[i]  # km
-                    distance = np.sqrt(np.sum(displacement ** 2))  # km
-                    
-                    # Avoid singularity with softening parameter
-                    softening = 1e-3  # km
+                    # Displacement vector from body i to body j (position units)
+                    displacement = positions[j] - positions[i]
+                    distance = np.sqrt(np.sum(displacement ** 2))
                     distance = max(distance, softening)
-                    
-                    # Convert to meters for force calculation
-                    distance_m = distance * 1000
-                    displacement_m = displacement * 1000
-                    
-                    # Calculate force magnitude
-                    force_magnitude = (self.G * self.bodies[i].mass * self.bodies[j].mass 
-                                     / (distance_m ** 2))
-                    
-                    # Force direction (unit vector)
-                    unit_vector = displacement / distance
-                    
-                    # Add to total force on body i
-                    total_force += force_magnitude * unit_vector
-            
-            # Convert force to acceleration (F = ma -> a = F/m)
-            acceleration = total_force / self.bodies[i].mass
-            accelerations[i*2:(i+1)*2] = acceleration / 1000  # Convert back to km/s²
-        
+
+                    total_acceleration += (
+                        self.G_eff * self.bodies[j].mass
+                        * displacement / distance ** 3
+                    )
+
+            accelerations[i*2:(i+1)*2] = total_acceleration
+
         return accelerations
     
     def _derivatives(self, t: float, state: np.ndarray) -> np.ndarray:
@@ -276,7 +281,7 @@ class NBodySimulation:
             ke = 0.0
             for body_idx in range(n_bodies):
                 mass = self.bodies[body_idx].mass
-                vel = velocities[t_idx, body_idx] * 1000  # Convert km/s to m/s
+                vel = velocities[t_idx, body_idx] * self.length_unit  # -> m/s
                 speed_squared = np.sum(vel ** 2)
                 ke += 0.5 * mass * speed_squared
             
@@ -289,9 +294,9 @@ class NBodySimulation:
                     mass_i = self.bodies[i].mass
                     mass_j = self.bodies[j].mass
                     
-                    pos_i = positions[t_idx, i] * 1000  # Convert km to m
-                    pos_j = positions[t_idx, j] * 1000
-                    
+                    pos_i = positions[t_idx, i] * self.length_unit  # -> m
+                    pos_j = positions[t_idx, j] * self.length_unit
+
                     distance = np.sqrt(np.sum((pos_i - pos_j) ** 2))
                     distance = max(distance, 1e-3)  # Avoid singularity
                     
