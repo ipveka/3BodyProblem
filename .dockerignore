@@ -1,0 +1,15 @@
+.git/
+.github/
+frontend/
+app/
+scripts/
+visualization/
+docs/
+tests/
+.streamlit/
+**/__pycache__/
+*.pyc
+*.md
+.venv/
+venv/
+.pytest_cache/

@@ -1,0 +1,6 @@
+# Lean runtime for the FastAPI backend only (no visualization/Streamlit stack).
+# Used by the Dockerfile and the Render backend service.
+numpy>=2.3.2
+scipy>=1.16.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
