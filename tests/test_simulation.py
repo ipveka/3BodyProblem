@@ -107,6 +107,48 @@ def test_figure_eight_is_periodic_in_normalized_units():
     assert np.ptp(pos[:, 0, 0]) > 1.0
 
 
+def test_vectorized_accelerations_match_bruteforce():
+    """The vectorized acceleration must equal a naive O(N²) reference."""
+    rng = np.random.default_rng(0)
+    bodies = [CelestialBody(rng.uniform(1e22, 1e30),
+                            list(rng.uniform(-1e8, 1e8, 2)),
+                            list(rng.uniform(-10, 10, 2)))
+              for _ in range(6)]
+    sim = NBodySimulation(bodies)
+    state = sim._state_vector()
+    acc = sim._compute_accelerations(state).reshape(sim.n_bodies, sim.dim)
+
+    pos = state.reshape(sim.n_bodies, sim.stride)[:, :sim.dim]
+    ref = np.zeros_like(acc)
+    for i in range(sim.n_bodies):
+        for j in range(sim.n_bodies):
+            if i != j:
+                disp = pos[j] - pos[i]
+                dist = max(np.sqrt(np.sum(disp ** 2)), 1e-3)
+                ref[i] += sim.G_eff * sim.masses[j] * disp / dist ** 3
+    assert np.allclose(acc, ref)
+
+
+def test_3d_inclined_orbit_is_stable_and_conserves_energy():
+    central = CelestialBody(1.0e30, [0, 0, 0], [0, 0, 0], "C")
+    r = 1.0e8
+    v = np.sqrt(G_SI * 1.0e30 / (r * 1000)) / 1000
+    # Circular orbit in a plane tilted 45° out of the xy-plane.
+    c = np.sqrt(0.5)
+    orbiter = CelestialBody(1.0e22, [r, 0, 0], [0, v * c, v * c], "O")
+    sim = NBodySimulation([central, orbiter])
+    assert sim.dim == 3
+    period = 2 * np.pi * np.sqrt((r * 1000) ** 3 / (G_SI * 1.0e30))
+    t_eval = np.linspace(0, period, 2000)
+    pos, vel, t, en = sim.simulate((0, period), t_eval, method="rk4")
+
+    radius = np.sqrt(np.sum(pos[:, 1, :] ** 2, axis=1))
+    assert np.max(np.abs(radius - r)) / r < 0.02
+    assert _energy_drift(en) < 1e-4
+    # The orbit genuinely uses the third dimension.
+    assert np.ptp(pos[:, 1, 2]) > 0.5 * r
+
+
 def test_g_default_matches_explicit_si():
     """Passing the default G must reproduce the implicit-default behaviour."""
     bodies = [CelestialBody(1.0e30, [0, 0], [0, 0]),

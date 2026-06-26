@@ -59,10 +59,12 @@ class CelestialBody:
         # Initialize trail for visualization
         self.trail_positions = [self.position.copy()]
         
-        # Validate dimensions
-        if len(self.position) != 2 or len(self.velocity) != 2:
-            raise ValueError("Position and velocity must be 2D vectors")
-        
+        # Validate dimensions (2D or 3D, and position/velocity must match)
+        if len(self.position) not in (2, 3):
+            raise ValueError("Position must be a 2D or 3D vector")
+        if len(self.position) != len(self.velocity):
+            raise ValueError("Position and velocity must have the same dimension")
+
         if self.mass <= 0:
             raise ValueError("Mass must be positive")
     
@@ -123,26 +125,26 @@ class CelestialBody:
         displacement = self.position - other.position
         return np.sqrt(np.sum(displacement ** 2))
     
-    def gravitational_force_from(self, other: 'CelestialBody') -> np.ndarray:
+    def gravitational_force_from(self, other: 'CelestialBody',
+                                 G: float = 6.67430e-11) -> np.ndarray:
         """
         Calculate the gravitational force exerted by another body on this body.
-        
+
         Args:
             other (CelestialBody): The body exerting the gravitational force
-            
+            G (float): Gravitational constant in SI units (m³ kg⁻¹ s⁻²).
+                Override to match a simulation that uses non-SI units.
+
         Returns:
             np.ndarray: Force vector in Newtons
         """
-        # Gravitational constant in m³ kg⁻¹ s⁻²
-        G = 6.67430e-11
-        
         # Calculate displacement vector (from this body to other body)
         displacement = other.position - self.position  # km
         distance = np.sqrt(np.sum(displacement ** 2))  # km
-        
+
         # Avoid singularity
         if distance < 1e-10:
-            return np.array([0.0, 0.0])
+            return np.zeros(len(self.position))
         
         # Convert distance to meters
         distance_m = distance * 1000
@@ -191,9 +193,10 @@ class CelestialBody:
     
     def __str__(self) -> str:
         """String representation of the celestial body."""
+        pos = ", ".join(f"{c:.3f}" for c in self.position)
+        vel = ", ".join(f"{c:.3f}" for c in self.velocity)
         return (f"CelestialBody(name='{self.name}', mass={self.mass:.2e} kg, "
-                f"pos=[{self.position[0]:.3f}, {self.position[1]:.3f}] km, "
-                f"vel=[{self.velocity[0]:.3f}, {self.velocity[1]:.3f}] km/s)")
+                f"pos=[{pos}] km, vel=[{vel}] km/s)")
     
     def __repr__(self) -> str:
         """Detailed representation of the celestial body."""

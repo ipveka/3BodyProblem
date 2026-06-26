@@ -41,8 +41,23 @@ class NBodySimulation:
         if len(bodies) < 2:
             raise ValueError("At least 2 bodies are required for simulation")
 
+        # Spatial dimension is inferred from the bodies (2D or 3D supported).
+        self.dim = len(bodies[0].position)
+        if self.dim not in (2, 3):
+            raise ValueError("Only 2D and 3D simulations are supported")
+        for body in bodies:
+            if len(body.position) != self.dim or len(body.velocity) != self.dim:
+                raise ValueError("All bodies must share the same dimension")
+            if not (np.all(np.isfinite(body.position))
+                    and np.all(np.isfinite(body.velocity))):
+                raise ValueError("Body position/velocity must be finite")
+
         self.bodies = [body.copy() for body in bodies]
         self.n_bodies = len(self.bodies)
+        # Number of state values per body: positions + velocities.
+        self.stride = 2 * self.dim
+        # Mass vector, cached for the vectorized acceleration computation.
+        self.masses = np.array([b.mass for b in self.bodies], dtype=float)
 
         # Gravitational constant in SI units (m³ kg⁻¹ s⁻²)
         self.G = G
@@ -51,12 +66,12 @@ class NBodySimulation:
         # Effective constant so acceleration comes out directly in
         # (position_unit / s²):  a_i = G_eff * Σ_{j≠i} m_j (r_j - r_i) / |r_j - r_i|³
         self.G_eff = G / (length_unit ** 3)
-        
+
         # Initialize custom solvers
         self.rk4_solver = RungeKuttaSolver()
         self.euler_solver = EulerSolver()
-        self.verlet_solver = VerletSolver()
-        
+        self.verlet_solver = VerletSolver(dim=self.dim)
+
         # Simulation state
         self.current_time = 0.0
         self.step_count = 0
@@ -66,31 +81,33 @@ class NBodySimulation:
         Convert the current state of all bodies to a single state vector.
         
         Returns:
-            np.ndarray: State vector of shape (4*n_bodies,) containing
-                       [x1, y1, vx1, vy1, x2, y2, vx2, vy2, ...]
+            np.ndarray: State vector of shape (2*dim*n_bodies,) laid out per
+                       body as [pos(dim), vel(dim), pos(dim), vel(dim), ...]
         """
-        state = np.zeros(4 * self.n_bodies)
-        
+        state = np.zeros(self.stride * self.n_bodies)
+        d = self.dim
+
         for i, body in enumerate(self.bodies):
-            start_idx = i * 4
-            state[start_idx:start_idx+2] = body.position
-            state[start_idx+2:start_idx+4] = body.velocity
-            
+            start_idx = i * self.stride
+            state[start_idx:start_idx+d] = body.position
+            state[start_idx+d:start_idx+2*d] = body.velocity
+
         return state
-    
+
     def _update_bodies_from_state(self, state: np.ndarray, update_trails: bool = True):
         """
         Update all bodies from a state vector.
-        
+
         Args:
             state (np.ndarray): State vector containing positions and velocities
             update_trails (bool): Whether to update position trails
         """
+        d = self.dim
         for i, body in enumerate(self.bodies):
-            start_idx = i * 4
-            new_position = state[start_idx:start_idx+2]
-            new_velocity = state[start_idx+2:start_idx+4]
-            
+            start_idx = i * self.stride
+            new_position = state[start_idx:start_idx+d]
+            new_velocity = state[start_idx+d:start_idx+2*d]
+
             body.update_position(new_position, update_trails)
             body.update_velocity(new_velocity)
     
@@ -102,40 +119,30 @@ class NBodySimulation:
             state (np.ndarray): Current state vector
             
         Returns:
-            np.ndarray: Acceleration vector for all bodies
+            np.ndarray: Flat acceleration vector of shape (dim*n_bodies,),
+                       laid out as [a1(dim), a2(dim), ...]
         """
-        accelerations = np.zeros(2 * self.n_bodies)
+        d = self.dim
+        # Positions as an (N, dim) array: every body's first ``dim`` entries.
+        positions = state.reshape(self.n_bodies, self.stride)[:, :d]
 
-        # Extract positions from state vector
-        positions = np.zeros((self.n_bodies, 2))
-        for i in range(self.n_bodies):
-            start_idx = i * 4
-            positions[i] = state[start_idx:start_idx+2]
-
-        # Softening length (in position units) to avoid the 1/r² singularity
+        # Softening length (in position units) to avoid the 1/r² singularity.
         softening = 1e-3
 
-        # Acceleration on body i from all other bodies j:
+        # Vectorized pairwise gravity. displacement[i, j] = r_j - r_i.
         #   a_i = G_eff * Σ_{j≠i} m_j (r_j - r_i) / |r_j - r_i|³
         # The mass of body i cancels out of F = m_i * a_i, so it never appears.
-        for i in range(self.n_bodies):
-            total_acceleration = np.array([0.0, 0.0])
+        displacement = positions[None, :, :] - positions[:, None, :]  # (N, N, dim)
+        dist_sq = np.sum(displacement ** 2, axis=2)                    # (N, N)
+        np.fill_diagonal(dist_sq, np.inf)        # self-interaction -> 0 below
+        distance = np.maximum(np.sqrt(dist_sq), softening)
+        inv_cube = 1.0 / distance ** 3                                 # (N, N)
 
-            for j in range(self.n_bodies):
-                if i != j:
-                    # Displacement vector from body i to body j (position units)
-                    displacement = positions[j] - positions[i]
-                    distance = np.sqrt(np.sum(displacement ** 2))
-                    distance = max(distance, softening)
+        # acc[i] = G_eff * Σ_j m_j * displacement[i, j] * inv_cube[i, j]
+        acc = self.G_eff * np.einsum(
+            'j,ijk,ij->ik', self.masses, displacement, inv_cube)
 
-                    total_acceleration += (
-                        self.G_eff * self.bodies[j].mass
-                        * displacement / distance ** 3
-                    )
-
-            accelerations[i*2:(i+1)*2] = total_acceleration
-
-        return accelerations
+        return acc.reshape(-1)
     
     def _derivatives(self, t: float, state: np.ndarray) -> np.ndarray:
         """
@@ -154,21 +161,22 @@ class NBodySimulation:
         Returns:
             np.ndarray: Derivative vector
         """
+        d = self.dim
         derivatives = np.zeros_like(state)
-        
-        # Calculate accelerations
+
+        # Calculate accelerations (flat, dim per body)
         accelerations = self._compute_accelerations(state)
-        
+
         # Fill derivatives vector
         for i in range(self.n_bodies):
-            start_idx = i * 4
-            
+            start_idx = i * self.stride
+
             # Position derivatives are velocities
-            derivatives[start_idx:start_idx+2] = state[start_idx+2:start_idx+4]
-            
+            derivatives[start_idx:start_idx+d] = state[start_idx+d:start_idx+2*d]
+
             # Velocity derivatives are accelerations
-            derivatives[start_idx+2:start_idx+4] = accelerations[i*2:(i+1)*2]
-        
+            derivatives[start_idx+d:start_idx+2*d] = accelerations[i*d:(i+1)*d]
+
         return derivatives
     
     def simulate(self, 
@@ -187,8 +195,8 @@ class NBodySimulation:
             
         Returns:
             Tuple containing:
-                - positions (np.ndarray): Position history of shape (n_times, n_bodies, 2)
-                - velocities (np.ndarray): Velocity history of shape (n_times, n_bodies, 2)
+                - positions (np.ndarray): Position history, shape (n_times, n_bodies, dim)
+                - velocities (np.ndarray): Velocity history, shape (n_times, n_bodies, dim)
                 - times (np.ndarray): Time points
                 - energies (Dict[str, np.ndarray]): Energy conservation data
         """
@@ -240,14 +248,11 @@ class NBodySimulation:
         
         # Extract positions and velocities
         n_times = len(times)
-        positions = np.zeros((n_times, self.n_bodies, 2))
-        velocities = np.zeros((n_times, self.n_bodies, 2))
-        
-        for t_idx in range(n_times):
-            for body_idx in range(self.n_bodies):
-                start_idx = body_idx * 4
-                positions[t_idx, body_idx] = solution[t_idx, start_idx:start_idx+2]
-                velocities[t_idx, body_idx] = solution[t_idx, start_idx+2:start_idx+4]
+        d = self.dim
+        # solution is (n_times, stride*n_bodies); reshape to per-body blocks.
+        reshaped = solution.reshape(n_times, self.n_bodies, self.stride)
+        positions = reshaped[:, :, :d].copy()
+        velocities = reshaped[:, :, d:2*d].copy()
         
         # Calculate energy conservation
         energies = self._calculate_energies(positions, velocities)

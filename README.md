@@ -85,6 +85,32 @@ python scripts/run_two_body.py
 python scripts/run_three_body.py
 ```
 
+## 🧩 Using the engine as a library
+
+The simulation core is dimension-agnostic (**2D or 3D**) and exposes a single
+validated entry point, `core.runner.run_simulation`, which returns a
+JSON-serializable result. This is the seam intended for backends (e.g. FastAPI):
+
+```python
+from core.runner import run_simulation
+
+result = run_simulation({
+    "bodies": [
+        {"mass": 1.0e30, "position": [0, 0, 0], "velocity": [0, 0, 0], "name": "Star"},
+        {"mass": 1.0e24, "position": [1.0e8, 0, 0], "velocity": [0, 25, 5], "name": "Planet"},
+    ],
+    "duration": 30 * 86400,   # seconds (or normalized time units when G=1)
+    "n_points": 1000,
+    "method": "rk4",          # "rk4" | "euler" | "verlet" | "scipy"
+})
+
+result["positions"]    # nested list, shape [n_times][n_bodies][dim]
+result["energy_drift"] # relative total-energy drift (lower is better)
+```
+
+Invalid configurations raise `core.runner.SimulationError`, and resource limits
+(`MAX_BODIES`, `MAX_POINTS`) guard against unbounded input.
+
 ## 🧪 Testing
 
 Install the dev dependencies and run the suite with `pytest`:

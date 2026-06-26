@@ -182,10 +182,16 @@ class VerletSolver(ODESolver):
     gravitational N-body problems.
     """
     
-    def __init__(self):
+    def __init__(self, dim: int = 2):
+        """
+        Args:
+            dim: Spatial dimension (2 or 3). The state vector is assumed to be
+                laid out per body as [pos(dim), vel(dim), ...].
+        """
+        self.dim = dim
         self.previous_accelerations = None
-    
-    def solve(self, 
+
+    def solve(self,
               func: Callable[[float, np.ndarray], np.ndarray], 
               y0: np.ndarray, 
               t_eval: np.ndarray, 
@@ -216,24 +222,26 @@ class VerletSolver(ODESolver):
         solution[0] = y0.copy()
         times[0] = t_eval[0]
         
-        # Extract initial positions and velocities
-        # Assume state vector is [x1, y1, vx1, vy1, x2, y2, vx2, vy2, ...]
-        n_bodies = n_vars // 4
-        
-        positions = np.zeros((n_bodies, 2))
-        velocities = np.zeros((n_bodies, 2))
-        
+        # Extract initial positions and velocities. The state vector is laid
+        # out per body as [pos(dim), vel(dim), pos(dim), vel(dim), ...].
+        d = self.dim
+        stride = 2 * d
+        n_bodies = n_vars // stride
+
+        positions = np.zeros((n_bodies, d))
+        velocities = np.zeros((n_bodies, d))
+
         for i in range(n_bodies):
-            start_idx = i * 4
-            positions[i] = y0[start_idx:start_idx+2]
-            velocities[i] = y0[start_idx+2:start_idx+4]
-        
+            start_idx = i * stride
+            positions[i] = y0[start_idx:start_idx+d]
+            velocities[i] = y0[start_idx+d:start_idx+2*d]
+
         # Calculate initial accelerations
         derivatives = func(t_eval[0], y0)
-        accelerations = np.zeros((n_bodies, 2))
+        accelerations = np.zeros((n_bodies, d))
         for i in range(n_bodies):
-            start_idx = i * 4
-            accelerations[i] = derivatives[start_idx+2:start_idx+4]
+            start_idx = i * stride
+            accelerations[i] = derivatives[start_idx+d:start_idx+2*d]
         
         # Current state
         t_current = t_eval[0]
@@ -251,16 +259,16 @@ class VerletSolver(ODESolver):
             # Construct new state vector for acceleration calculation
             new_state = np.zeros(n_vars)
             for i in range(n_bodies):
-                start_idx = i * 4
-                new_state[start_idx:start_idx+2] = new_positions[i]
-                new_state[start_idx+2:start_idx+4] = velocities[i]  # Use old velocities temporarily
-            
+                start_idx = i * stride
+                new_state[start_idx:start_idx+d] = new_positions[i]
+                new_state[start_idx+d:start_idx+2*d] = velocities[i]  # old velocities (unused by gravity)
+
             # Calculate new accelerations
             new_derivatives = func(t_current + h, new_state)
-            new_accelerations = np.zeros((n_bodies, 2))
+            new_accelerations = np.zeros((n_bodies, d))
             for i in range(n_bodies):
-                start_idx = i * 4
-                new_accelerations[i] = new_derivatives[start_idx+2:start_idx+4]
+                start_idx = i * stride
+                new_accelerations[i] = new_derivatives[start_idx+d:start_idx+2*d]
             
             # Update velocities: v(t+h) = v(t) + 0.5*(a(t) + a(t+h))*h
             new_velocities = velocities + 0.5 * (accelerations + new_accelerations) * h
@@ -272,9 +280,9 @@ class VerletSolver(ODESolver):
             if abs(t_next - t_target) < 1e-10 or t_next >= t_target:
                 # Store solution
                 for i in range(n_bodies):
-                    start_idx = i * 4
-                    solution[eval_idx, start_idx:start_idx+2] = new_positions[i]
-                    solution[eval_idx, start_idx+2:start_idx+4] = new_velocities[i]
+                    start_idx = i * stride
+                    solution[eval_idx, start_idx:start_idx+d] = new_positions[i]
+                    solution[eval_idx, start_idx+d:start_idx+2*d] = new_velocities[i]
                 
                 times[eval_idx] = t_target
                 eval_idx += 1
