@@ -1,0 +1,42 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> select this repo.
+# Render creates both services. The default URLs are
+#   https://<name>.onrender.com
+# If Render assigns different names/URLs (e.g. on name collisions), update the
+# two cross-referencing env vars below (ALLOWED_ORIGINS, VITE_API_URL).
+services:
+  # --- FastAPI backend (web service) ---
+  - type: web
+    name: 3body-api
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.5"
+      # CORS allow-list: the deployed frontend's origin.
+      - key: ALLOWED_ORIGINS
+        value: https://3body-frontend.onrender.com
+
+  # --- React frontend (static site) ---
+  - type: web
+    name: 3body-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    # SPA fallback: serve index.html for any path.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Build-time API base URL (Vite inlines this at build).
+      - key: VITE_API_URL
+        value: https://3body-api.onrender.com

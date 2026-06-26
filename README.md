@@ -180,7 +180,40 @@ The tests use physical conservation laws and known analytic results as oracles
 integrator ordering, and the periodic figure-eight solution). CI runs them on
 Python 3.11 and 3.12 via GitHub Actions.
 
-## 🌐 Deployment
+## 🚀 Deploy (API + React frontend)
+
+### Local: Docker Compose
+
+Bring up the whole stack with one command:
+
+```bash
+docker compose up --build
+# Backend  -> http://localhost:8000  (docs at /docs)
+# Frontend -> http://localhost:5173
+```
+
+The backend image (`Dockerfile`) ships only the engine + API with a lean
+dependency set (`requirements-api.txt`) — no Streamlit/visualization stack.
+
+### Render (Blueprint)
+
+A `render.yaml` blueprint provisions both services:
+
+1. Push this repo to GitHub.
+2. In Render: **New → Blueprint** and select the repo.
+3. Render creates a **web service** (`3body-api`, FastAPI) and a **static site**
+   (`3body-frontend`, the built React app).
+
+The two services cross-reference each other by URL via env vars in `render.yaml`:
+
+- `VITE_API_URL` (frontend, build-time) → the backend URL
+- `ALLOWED_ORIGINS` (backend, CORS) → the frontend URL
+
+They default to `https://3body-api.onrender.com` and
+`https://3body-frontend.onrender.com`. If Render assigns different URLs, update
+those two values in `render.yaml` (or in the dashboard) and redeploy.
+
+## 🌐 Deploying the Streamlit app
 
 ### Using `run_app.py`
 
