@@ -22,6 +22,7 @@ The application is organized into several key modules that separate concerns: ph
 ├── scripts/
 │   ├── run_two_body.py    # Two-body demonstration script
 │   └── run_three_body.py  # Three-body demonstration script
+├── tests/                 # Pytest suite (physics & solver tests)
 ├── docs/                  # Documentation (this folder)
 ├── run_app.py             # Application launcher with dependency checks
 ├── requirements.txt       # Python package dependencies (runtime)

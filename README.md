@@ -85,6 +85,20 @@ python scripts/run_two_body.py
 python scripts/run_three_body.py
 ```
 
+## 🧪 Testing
+
+Install the dev dependencies and run the suite with `pytest`:
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+The tests use physical conservation laws and known analytic results as oracles
+(circular-orbit stability, Kepler's third law, energy/momentum conservation,
+integrator ordering, and the periodic figure-eight solution). CI runs them on
+Python 3.11 and 3.12 via GitHub Actions.
+
 ## 🌐 Deployment
 
 ### Using `run_app.py`
