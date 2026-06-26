@@ -63,3 +63,7 @@ Tracker = "https://github.com/ipveka/3bodyproblem/issues"
 
 [tool.setuptools]
 packages = ["core", "visualization", "app", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
