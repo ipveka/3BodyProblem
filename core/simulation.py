@@ -162,20 +162,14 @@ class NBodySimulation:
             np.ndarray: Derivative vector
         """
         d = self.dim
-        derivatives = np.zeros_like(state)
-
-        # Calculate accelerations (flat, dim per body)
         accelerations = self._compute_accelerations(state)
 
-        # Fill derivatives vector
-        for i in range(self.n_bodies):
-            start_idx = i * self.stride
-
-            # Position derivatives are velocities
-            derivatives[start_idx:start_idx+d] = state[start_idx+d:start_idx+2*d]
-
-            # Velocity derivatives are accelerations
-            derivatives[start_idx+d:start_idx+2*d] = accelerations[i*d:(i+1)*d]
+        # Vectorized assembly: dpos/dt = vel, dvel/dt = acc, per body.
+        derivatives = np.empty_like(state)
+        s = state.reshape(self.n_bodies, self.stride)
+        out = derivatives.reshape(self.n_bodies, self.stride)
+        out[:, :d] = s[:, d:2 * d]
+        out[:, d:2 * d] = accelerations.reshape(self.n_bodies, d)
 
         return derivatives
     
@@ -277,38 +271,31 @@ class NBodySimulation:
             Dict[str, np.ndarray]: Dictionary containing energy arrays
         """
         n_times, n_bodies, _ = positions.shape
-        
-        kinetic_energies = np.zeros(n_times)
-        potential_energies = np.zeros(n_times)
-        
-        for t_idx in range(n_times):
-            # Kinetic energy
-            ke = 0.0
-            for body_idx in range(n_bodies):
-                mass = self.bodies[body_idx].mass
-                vel = velocities[t_idx, body_idx] * self.length_unit  # -> m/s
-                speed_squared = np.sum(vel ** 2)
-                ke += 0.5 * mass * speed_squared
-            
-            kinetic_energies[t_idx] = ke
-            
-            # Potential energy
-            pe = 0.0
-            for i in range(n_bodies):
-                for j in range(i + 1, n_bodies):
-                    mass_i = self.bodies[i].mass
-                    mass_j = self.bodies[j].mass
-                    
-                    pos_i = positions[t_idx, i] * self.length_unit  # -> m
-                    pos_j = positions[t_idx, j] * self.length_unit
+        lu = self.length_unit
+        masses = self.masses
 
-                    distance = np.sqrt(np.sum((pos_i - pos_j) ** 2))
-                    distance = max(distance, 1e-3)  # Avoid singularity
-                    
-                    pe -= self.G * mass_i * mass_j / distance
-            
-            potential_energies[t_idx] = pe
-        
+        # Kinetic energy: KE(t) = ½ Σ_i m_i |v_i|²  (fully vectorized, small memory).
+        vm = velocities * lu  # -> m/s
+        kinetic_energies = 0.5 * np.einsum('i,tik,tik->t', masses, vm, vm)
+
+        # Potential energy: PE(t) = -G Σ_{i<j} m_i m_j / |r_i - r_j|
+        potential_energies = np.zeros(n_times)
+        iu = np.triu_indices(n_bodies, k=1)
+        if iu[0].size > 0:
+            mass_products = (masses[:, None] * masses[None, :])[iu]  # (n_pairs,)
+            pm_all = positions * lu  # -> m
+            # Process time in chunks so peak memory stays bounded regardless of
+            # how long the run is (the pairwise array is O(chunk · n_bodies²)).
+            chunk = max(1, 4_000_000 // max(1, n_bodies * n_bodies))
+            for start in range(0, n_times, chunk):
+                end = min(start + chunk, n_times)
+                pm = pm_all[start:end]  # (c, n_bodies, dim)
+                diff = pm[:, :, None, :] - pm[:, None, :, :]  # (c, N, N, dim)
+                dist = np.sqrt(np.sum(diff ** 2, axis=3))  # (c, N, N)
+                pair_dist = np.maximum(dist[:, iu[0], iu[1]], 1e-3)  # (c, n_pairs)
+                potential_energies[start:end] = (
+                    -self.G * (mass_products / pair_dist).sum(axis=1))
+
         total_energies = kinetic_energies + potential_energies
         
         return {
