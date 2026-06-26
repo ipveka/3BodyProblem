@@ -1,0 +1,446 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "N-Body Simulation API",
+    "description": "Gravitational N-body simulation with 2D/3D support.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Liveness probe.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presets": {
+      "get": {
+        "summary": "Get Presets",
+        "description": "List the built-in example systems.",
+        "operationId": "get_presets_api_presets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PresetOut"
+                  },
+                  "type": "array",
+                  "title": "Response Get Presets Api Presets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presets/{preset_id}": {
+      "get": {
+        "summary": "Get One Preset",
+        "description": "Fetch a single preset by id.",
+        "operationId": "get_one_preset_api_presets__preset_id__get",
+        "parameters": [
+          {
+            "name": "preset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Preset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/simulate": {
+      "post": {
+        "summary": "Simulate",
+        "description": "Run a simulation and return the full trajectory + energy diagnostics.",
+        "operationId": "simulate_api_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BodyIn": {
+        "properties": {
+          "mass": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Mass",
+            "description": "Mass in kilograms (must be positive)."
+          },
+          "position": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Position",
+            "description": "Position vector (2D or 3D)."
+          },
+          "velocity": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Velocity",
+            "description": "Velocity vector, same dim as position."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": "Body"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color",
+            "default": "#FF0000"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mass",
+          "position",
+          "velocity"
+        ],
+        "title": "BodyIn"
+      },
+      "BodyOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "mass": {
+            "type": "number",
+            "title": "Mass"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "color",
+          "mass"
+        ],
+        "title": "BodyOut"
+      },
+      "Energies": {
+        "properties": {
+          "kinetic": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Kinetic"
+          },
+          "potential": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Potential"
+          },
+          "total": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kinetic",
+          "potential",
+          "total"
+        ],
+        "title": "Energies"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "PresetOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SimRequest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "request"
+        ],
+        "title": "PresetOut"
+      },
+      "SimRequest": {
+        "properties": {
+          "bodies": {
+            "items": {
+              "$ref": "#/components/schemas/BodyIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 2,
+            "title": "Bodies"
+          },
+          "duration": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Duration",
+            "description": "Total simulated time (seconds, or normalized units when G/length_unit are 1)."
+          },
+          "n_points": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 2.0,
+            "title": "N Points",
+            "default": 1000
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "rk4",
+              "euler",
+              "verlet",
+              "scipy"
+            ],
+            "title": "Method",
+            "default": "rk4"
+          },
+          "G": {
+            "type": "number",
+            "title": "G",
+            "description": "Gravitational constant (SI).",
+            "default": 6.6743e-11
+          },
+          "length_unit": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Length Unit",
+            "description": "Meters per position unit (km -> 1000).",
+            "default": 1000.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "bodies",
+          "duration"
+        ],
+        "title": "SimRequest"
+      },
+      "SimResponse": {
+        "properties": {
+          "dim": {
+            "type": "integer",
+            "title": "Dim"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "times": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Times"
+          },
+          "bodies": {
+            "items": {
+              "$ref": "#/components/schemas/BodyOut"
+            },
+            "type": "array",
+            "title": "Bodies"
+          },
+          "positions": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Positions"
+          },
+          "velocities": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Velocities"
+          },
+          "energies": {
+            "$ref": "#/components/schemas/Energies"
+          },
+          "energy_drift": {
+            "type": "number",
+            "title": "Energy Drift"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dim",
+          "method",
+          "times",
+          "bodies",
+          "positions",
+          "velocities",
+          "energies",
+          "energy_drift"
+        ],
+        "title": "SimResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
