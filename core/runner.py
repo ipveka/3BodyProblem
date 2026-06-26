@@ -3,9 +3,9 @@ High-level entry point for running N-body simulations.
 
 This module provides a single, validated function -- :func:`run_simulation` --
 that turns a plain configuration (dataclasses or dicts) into a JSON-serializable
-result. It is the seam that user-facing layers (the Streamlit app, a FastAPI
-backend, scripts) should call instead of wiring up ``NBodySimulation`` by hand,
-so that input validation and resource limits live in exactly one place.
+result. It is the seam that user-facing layers (the FastAPI backend, scripts,
+notebooks) should call instead of wiring up ``NBodySimulation`` by hand, so that
+input validation and resource limits live in exactly one place.
 """
 from __future__ import annotations
 

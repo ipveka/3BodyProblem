@@ -1,18 +1,13 @@
 # 3BodyProblem N-Body Gravitational Simulation
 # Runtime dependencies (mirrors [project.dependencies] in pyproject.toml).
 # For an editable install with dev tools, use: pip install -e ".[dev]"
+# For the API only, use the leaner requirements-api.txt.
 
 # Core scientific computing
 numpy>=2.3.2
 scipy>=1.16.1
 
-# Visualization
+# Visualization (used by the demo scripts and visualization/ module)
 matplotlib>=3.10.5
 plotly>=6.2.0
 seaborn>=0.13.2
-
-# Data handling
-pandas>=2.3.1
-
-# Web interface
-streamlit>=1.47.1
