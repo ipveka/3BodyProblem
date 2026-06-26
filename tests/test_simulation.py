@@ -129,6 +129,32 @@ def test_vectorized_accelerations_match_bruteforce():
     assert np.allclose(acc, ref)
 
 
+def test_vectorized_energies_match_bruteforce():
+    """The vectorized KE/PE must equal the naive per-pair reference."""
+    rng = np.random.default_rng(3)
+    bodies = [CelestialBody(rng.uniform(1e22, 1e30),
+                            list(rng.uniform(-1e8, 1e8, 3)),
+                            list(rng.uniform(-10, 10, 3)))
+              for _ in range(5)]
+    sim = NBodySimulation(bodies)
+    t_eval = np.linspace(0, 5 * 86400, 50)
+    pos, vel, t, en = sim.simulate((0, 5 * 86400), t_eval, method="rk4")
+
+    G, lu = sim.G, sim.length_unit
+    masses = sim.masses
+    n_t, n_b, _ = pos.shape
+    for ti in (0, n_t // 2, n_t - 1):
+        ke = sum(0.5 * masses[i] * np.sum((vel[ti, i] * lu) ** 2)
+                 for i in range(n_b))
+        pe = 0.0
+        for i in range(n_b):
+            for j in range(i + 1, n_b):
+                dist = max(np.linalg.norm((pos[ti, i] - pos[ti, j]) * lu), 1e-3)
+                pe -= G * masses[i] * masses[j] / dist
+        assert en["kinetic"][ti] == pytest.approx(ke, rel=1e-9)
+        assert en["potential"][ti] == pytest.approx(pe, rel=1e-9)
+
+
 def test_3d_inclined_orbit_is_stable_and_conserves_energy():
     central = CelestialBody(1.0e30, [0, 0, 0], [0, 0, 0], "C")
     r = 1.0e8
