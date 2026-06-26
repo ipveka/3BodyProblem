@@ -140,6 +140,32 @@ data=json.dumps(req).encode(), headers={'Content-Type':'application/json'})).rea
 
 Set `ALLOWED_ORIGINS` (comma-separated) to restrict CORS in production.
 
+## 💻 Web frontend (React + three.js)
+
+A React + TypeScript + Vite single-page app renders trajectories in 3D
+(react-three-fiber) and talks to the FastAPI backend. Its API types are
+generated from the backend's OpenAPI schema, so the two stay in sync.
+
+```bash
+# 1. Start the backend (in one terminal)
+uvicorn backend.main:app --reload
+
+# 2. Start the frontend (in another)
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
+The frontend reads the backend URL from `VITE_API_URL` (see
+`frontend/.env.example`; defaults to `http://localhost:8000`). To regenerate the
+API types after changing the backend schema:
+
+```bash
+python -c "import json; from backend.main import app; \
+open('frontend/openapi.json','w').write(json.dumps(app.openapi(), indent=2))"
+cd frontend && npm run gen:types
+```
+
 ## 🧪 Testing
 
 Install the dev dependencies and run the suite with `pytest`:
