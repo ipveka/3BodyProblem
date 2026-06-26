@@ -111,6 +111,35 @@ result["energy_drift"] # relative total-energy drift (lower is better)
 Invalid configurations raise `core.runner.SimulationError`, and resource limits
 (`MAX_BODIES`, `MAX_POINTS`) guard against unbounded input.
 
+## 🔌 REST API (FastAPI)
+
+A FastAPI backend wraps the engine for use by a web frontend or other clients.
+
+```bash
+pip install -e ".[api]"
+uvicorn backend.main:app --reload
+```
+
+Then open the interactive docs at http://localhost:8000/docs. Endpoints:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Liveness probe |
+| `GET` | `/api/presets` | List built-in example systems |
+| `GET` | `/api/presets/{id}` | Fetch one preset (ready-to-run request) |
+| `POST` | `/api/simulate` | Run a simulation, return trajectory + energies |
+
+Example:
+
+```bash
+curl -s localhost:8000/api/presets/figure-eight \
+  | python -c "import sys,json,urllib.request as u; req=json.load(sys.stdin)['request']; \
+print(urllib.request.urlopen(u.Request('http://localhost:8000/api/simulate', \
+data=json.dumps(req).encode(), headers={'Content-Type':'application/json'})).read()[:120])"
+```
+
+Set `ALLOWED_ORIGINS` (comma-separated) to restrict CORS in production.
+
 ## 🧪 Testing
 
 Install the dev dependencies and run the suite with `pytest`:
