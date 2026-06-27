@@ -8,11 +8,14 @@ forces between multiple celestial bodies.
 
 import numpy as np
 from typing import List, Tuple, Dict, Optional
-from scipy.integrate import solve_ivp
 import warnings
 
 from .body import CelestialBody
 from .solver import RungeKuttaSolver, EulerSolver, VerletSolver
+
+# NOTE: SciPy is imported lazily inside the 'scipy' integration method so that
+# the rest of the engine (RK4/Euler/Verlet) runs without it. This keeps lean
+# deployments (e.g. serverless functions) small — only numpy is required.
 
 class NBodySimulation:
     """
@@ -204,7 +207,9 @@ class NBodySimulation:
         initial_state = self._state_vector()
         
         if method.lower() == 'scipy':
-            # Use scipy's solve_ivp
+            # Imported lazily so non-scipy methods work without SciPy installed.
+            from scipy.integrate import solve_ivp
+
             sol = solve_ivp(
                 self._derivatives, 
                 t_span, 

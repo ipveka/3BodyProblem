@@ -1,0 +1,6 @@
+# Dependencies for the Vercel serverless function only.
+# Intentionally minimal (no scipy/matplotlib) to stay well under the
+# serverless bundle size limit. scipy is imported lazily and is not needed
+# for the rk4/euler/verlet methods used by the API.
+fastapi>=0.115.0
+numpy>=1.26.0
