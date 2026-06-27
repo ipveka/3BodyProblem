@@ -53,6 +53,38 @@ a name collision), update these two values in `render.yaml` or the dashboard and
 redeploy. Because Vite inlines `VITE_API_URL` at build time, the frontend must be
 rebuilt after changing it.
 
+## Vercel (all-in-one, serverless)
+
+Vercel hosts the whole app as one project: the static React build on the CDN and
+the FastAPI backend as a Python serverless function. Suitable because the API is
+stateless (request → simulate → response). Configuration is in `vercel.json`.
+
+| Piece | How |
+|-------|-----|
+| Frontend | `buildCommand: cd frontend && npm install && npm run build`, `outputDirectory: frontend/dist` |
+| Backend | `api/index.py` exposes the ASGI `app`; `includeFiles` bundles `backend/` + `core/` |
+| Routing | `/api/*` and `/health` rewrite to the function; everything else is the static site |
+| Deps | `api/requirements.txt` (fastapi + numpy only) |
+
+### Steps
+
+1. Push to GitHub.
+2. Vercel: **Add New → Project** → import the repo → **Deploy** (defaults from
+   `vercel.json`).
+
+### Constraints & design choices
+
+- **SciPy is not bundled.** It is imported lazily in the engine, so
+  `rk4`/`euler`/`verlet` work with numpy alone; the optional `"scipy"` method is
+  unavailable on Vercel. This keeps the function under the serverless size limit.
+- **Same-origin, no env var.** The frontend defaults to a relative API base in
+  production, and the function is served on the same domain — so no CORS and no
+  `VITE_API_URL` needed.
+- **Limits (Hobby/free):** `maxDuration` is set to 60s; serverless responses are
+  capped (~4.5 MB). Large trajectories (high body count × many steps) can exceed
+  these — keep `n_points` modest or downsample. Hobby is free for personal use;
+  commercial use needs Pro.
+
 ## Other platforms
 
 The backend is a standard ASGI app, so any platform that can run a container or a

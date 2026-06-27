@@ -1,0 +1,15 @@
+# Keep the deployment (and the serverless function bundle) lean: only the
+# frontend, the API entry point, and the backend/core packages are needed.
+tests/
+scripts/
+visualization/
+docs/
+.github/
+Dockerfile
+docker-compose.yml
+.dockerignore
+render.yaml
+requirements.txt
+requirements-api.txt
+frontend/node_modules/
+frontend/dist/

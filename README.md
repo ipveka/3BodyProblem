@@ -207,6 +207,30 @@ They default to `https://3body-api.onrender.com` and
 `https://3body-frontend.onrender.com`. If Render assigns different URLs, update
 those two values in `render.yaml` (or in the dashboard) and redeploy.
 
+### Vercel (all-in-one, serverless)
+
+The whole app can run on Vercel as a single project: the React app on the CDN
+and the FastAPI backend as a Python **serverless function**. This works because
+the API is stateless (request → simulate → response). Config lives in
+`vercel.json`.
+
+1. Push this repo to GitHub.
+2. In Vercel: **Add New → Project** and import the repo. Accept the defaults
+   (`vercel.json` provides the build command, output dir, and routing).
+3. Deploy. The frontend is served at `/`; `/api/*` is routed to the function.
+
+Notes:
+- The function ships a minimal dependency set (`api/requirements.txt`:
+  fastapi + numpy). SciPy is imported lazily and is **not** bundled, keeping the
+  function well under the serverless size limit. The `"scipy"` integration
+  method is therefore unavailable on Vercel — use `rk4`/`verlet`/`euler`.
+- No env var is required: the frontend defaults to **same-origin** in
+  production, and the API is same-origin (so no CORS).
+- Serverless limits to keep in mind on the free **Hobby** tier: function
+  duration (`maxDuration` is set to 60s) and response size (~4.5 MB). Very large
+  runs (high body count × many steps) may hit these — keep `n_points` modest.
+  Hobby is free for personal/non-commercial use.
+
 ## 📜 License
 
 MIT — see [LICENSE](LICENSE).
