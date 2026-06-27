@@ -30,7 +30,7 @@ jobs:
 
       - name: Lint for syntax errors and undefined names
         run: |
-          flake8 core visualization app scripts backend \
+          flake8 core visualization scripts backend api \
             --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run tests
