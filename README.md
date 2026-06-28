@@ -218,8 +218,9 @@ the API is stateless (request → simulate → response). Config lives in
 `vercel.json`.
 
 1. Push this repo to GitHub.
-2. In Vercel: **Add New → Project** and import the repo. Accept the defaults
-   (`vercel.json` provides the build command, output dir, and routing).
+2. In Vercel: **Add New → Project** and import the repo. Accept the defaults —
+   `vercel.json` declares both builds (static frontend + Python function) and
+   the routing explicitly.
 3. Deploy. The frontend is served at `/`; `/api/*` is routed to the function.
 
 Notes:

@@ -59,12 +59,15 @@ Vercel hosts the whole app as one project: the static React build on the CDN and
 the FastAPI backend as a Python serverless function. Suitable because the API is
 stateless (request → simulate → response). Configuration is in `vercel.json`.
 
+`vercel.json` uses explicit `builds` + `routes` (rather than zero-config) so the
+Python function and the static frontend are both declared unambiguously:
+
 | Piece | How |
 |-------|-----|
-| Frontend | `buildCommand: cd frontend && npm install && npm run build`, `outputDirectory: frontend/dist` |
-| Backend | `api/index.py` exposes the ASGI `app`; `includeFiles` bundles `backend/` + `core/` |
-| Routing | `/api/*` and `/health` rewrite to the function; everything else is the static site |
-| Deps | root `requirements.txt` (fastapi + numpy only; Vercel detects Python from it) |
+| Frontend | `@vercel/static-build` on `frontend/package.json` (runs `npm run build`), `distDir: dist` |
+| Backend | `@vercel/python` on `api/index.py` (the ASGI `app`); `includeFiles` bundles `backend/` + `core/` |
+| Routing | `routes`: `/api/*` and `/health` → the function; `filesystem` then SPA fallback to `/index.html` |
+| Deps | root `requirements.txt` (fastapi + numpy only) |
 
 ### Steps
 
