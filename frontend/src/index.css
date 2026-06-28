@@ -276,3 +276,43 @@ footer { margin-top: auto; font-size: 11px; color: var(--muted); line-height: 1.
   text-align: center; padding: 28px 24px 48px; font-size: 13px; color: var(--muted);
   border-top: 1px solid rgba(255, 255, 255, 0.06); max-width: 860px; margin: 0 auto;
 }
+
+/* ============================== Responsive =============================== */
+/* Simulator: stack the viewer above the controls on phones/tablets. */
+.app-mobile {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 100vh;
+}
+.app-mobile .viewer {
+  height: 52vh;
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+}
+.app-mobile .sidebar {
+  height: auto;
+  overflow: visible;
+  border-right: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar { padding: 16px; }
+  /* Comfortable tap targets on touch devices */
+  select, input[type='number'], input[type='text'], .transport button,
+  .comparison-head button { min-height: 40px; }
+  .hero-cta .btn-primary, .hero-cta .btn-ghost { width: 100%; text-align: center; }
+}
+
+@media (max-width: 640px) {
+  .landing-hero { padding: 56px 18px 44px; }
+  .hero-sub { font-size: 16px; }
+  .landing-body { padding: 8px 18px 48px; }
+  .section { padding: 26px 0; }
+  .section h2 { font-size: 22px; }
+  .formula { font-size: 18px; padding: 14px; }
+  .hero-cta { flex-direction: column; align-items: stretch; }
+}
