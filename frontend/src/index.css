@@ -245,6 +245,19 @@ footer { margin-top: auto; font-size: 11px; color: var(--muted); line-height: 1.
   border-radius: 10px; padding: 16px 18px; font-size: 15px; line-height: 1.6; color: #d4daf5;
 }
 
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 8px 0 18px; }
+.compare-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--panel); }
+.compare-card.good { border-color: rgba(46, 204, 113, 0.4); }
+.compare-card.bad { border-color: rgba(231, 76, 60, 0.4); }
+.compare-tag {
+  display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
+}
+.compare-card.good .compare-tag { background: rgba(46, 204, 113, 0.15); color: #7ee2a8; }
+.compare-card.bad .compare-tag { background: rgba(231, 76, 60, 0.15); color: #ff9b8f; }
+.compare-card h3 { margin: 0 0 8px; font-size: 19px; }
+.compare-card p { font-size: 14px; margin: 0; }
+
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 8px; }
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
 .card-icon {
