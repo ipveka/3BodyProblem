@@ -7,6 +7,10 @@ export default function BodyEditor() {
   if (!request) return null
 
   const dim = request.bodies[0]?.position.length === 3 ? 3 : 2
+  const normalized = (request.length_unit ?? 1000) === 1
+  const massUnit = normalized ? '' : ' (kg)'
+  const posUnit = normalized ? '' : ' (km)'
+  const velUnit = normalized ? '' : ' (km/s)'
 
   return (
     <div className="editor">
@@ -29,14 +33,16 @@ export default function BodyEditor() {
         <div className="body-card" key={i} style={{ borderLeftColor: body.color }}>
           <div className="body-row">
             <input
+              type="color"
+              className="body-color"
+              value={body.color}
+              title="Color"
+              onChange={(e) => updateBody(i, { color: e.target.value })}
+            />
+            <input
               className="body-name"
               value={body.name}
               onChange={(e) => updateBody(i, { name: e.target.value })}
-            />
-            <input
-              type="color"
-              value={body.color}
-              onChange={(e) => updateBody(i, { color: e.target.value })}
             />
             <button
               className="remove"
@@ -48,8 +54,8 @@ export default function BodyEditor() {
             </button>
           </div>
 
-          <label className="mass">
-            mass (kg)
+          <label className="mass-field">
+            <span>mass{massUnit}</span>
             <input
               type="number"
               value={body.mass}
@@ -57,13 +63,20 @@ export default function BodyEditor() {
             />
           </label>
 
-          <div className="vec-grid">
-            <span className="vec-label">pos</span>
+          <div
+            className="vectors"
+            style={{ gridTemplateColumns: `4.2rem repeat(${dim}, minmax(0, 1fr))` }}
+          >
+            <span className="axis-corner" />
+            {AXES.slice(0, dim).map((a) => (
+              <span key={a} className="axis-head">{a}</span>
+            ))}
+
+            <span className="vec-name">pos{posUnit}</span>
             {body.position.map((v, k) => (
               <input
                 key={`p${k}`}
                 type="number"
-                title={`position ${AXES[k]}`}
                 value={v}
                 onChange={(e) => {
                   const next = body.position.slice()
@@ -72,12 +85,12 @@ export default function BodyEditor() {
                 }}
               />
             ))}
-            <span className="vec-label">vel</span>
+
+            <span className="vec-name">vel{velUnit}</span>
             {body.velocity.map((v, k) => (
               <input
                 key={`v${k}`}
                 type="number"
-                title={`velocity ${AXES[k]}`}
                 value={v}
                 onChange={(e) => {
                   const next = body.velocity.slice()
