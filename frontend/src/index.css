@@ -19,8 +19,19 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  /* columns are set inline (resizable); this is the fallback */
+  grid-template-columns: 420px 6px 1fr;
   height: 100vh;
+}
+
+.resizer {
+  background: var(--border);
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+.resizer:hover,
+.resizer:active {
+  background: var(--accent);
 }
 
 .sidebar {

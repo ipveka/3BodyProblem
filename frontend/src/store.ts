@@ -121,6 +121,8 @@ export const useStore = create<State>((set, get) => ({
       set({ presets })
       if (presets.length > 0 && !get().selectedPresetId) {
         get().selectPreset(presets[0].id)
+        // Auto-run the first preset so the viewer shows something on load.
+        await get().run()
       }
     } catch (e) {
       set({ error: (e as Error).message })
