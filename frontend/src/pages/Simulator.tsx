@@ -13,10 +13,14 @@ const ComparisonPanel = lazy(() => import('../components/ComparisonPanel'))
 const MIN_WIDTH = 360
 const MAX_WIDTH = 760
 const DEFAULT_WIDTH = 480
+const MOBILE_QUERY = '(max-width: 768px)'
 
 export default function Simulator() {
   const loadPresets = useStore((s) => s.loadPresets)
 
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches,
+  )
   const [width, setWidth] = useState(() => {
     const saved = Number(localStorage.getItem('sidebarWidth'))
     return saved >= MIN_WIDTH && saved <= MAX_WIDTH ? saved : DEFAULT_WIDTH
@@ -26,6 +30,13 @@ export default function Simulator() {
   useEffect(() => {
     loadPresets()
   }, [loadPresets])
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY)
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('sidebarWidth', String(width))
@@ -57,20 +68,42 @@ export default function Simulator() {
     }
   }, [])
 
+  const sidebar = (
+    <aside className="sidebar">
+      <Controls />
+      <BodyEditor />
+      <Suspense fallback={null}>
+        <EnergyChart />
+        <ComparisonPanel />
+      </Suspense>
+      <footer>
+        <Link to="/" className="home-link">← Home</Link>
+        <span>FastAPI · React · three.js</span>
+      </footer>
+    </aside>
+  )
+
+  const viewer = (
+    <main className="viewer">
+      <Suspense fallback={<div className="viewer-loading">Loading 3D viewer…</div>}>
+        <Viewer3D />
+      </Suspense>
+    </main>
+  )
+
+  if (isMobile) {
+    // Stacked layout: viewer on top, controls scroll below.
+    return (
+      <div className="app app-mobile">
+        {viewer}
+        {sidebar}
+      </div>
+    )
+  }
+
   return (
     <div className="app" style={{ gridTemplateColumns: `${width}px 6px 1fr` }}>
-      <aside className="sidebar">
-        <Controls />
-        <BodyEditor />
-        <Suspense fallback={null}>
-          <EnergyChart />
-          <ComparisonPanel />
-        </Suspense>
-        <footer>
-          <Link to="/" className="home-link">← Home</Link>
-          <span>FastAPI · React · three.js</span>
-        </footer>
-      </aside>
+      {sidebar}
       <div
         className="resizer"
         onMouseDown={startDrag}
@@ -79,11 +112,7 @@ export default function Simulator() {
         role="separator"
         aria-orientation="vertical"
       />
-      <main className="viewer">
-        <Suspense fallback={<div className="viewer-loading">Loading 3D viewer…</div>}>
-          <Viewer3D />
-        </Suspense>
-      </main>
+      {viewer}
     </div>
   )
 }
