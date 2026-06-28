@@ -1,13 +1,8 @@
-# 3BodyProblem N-Body Gravitational Simulation
-# Runtime dependencies (mirrors [project.dependencies] in pyproject.toml).
-# For an editable install with dev tools, use: pip install -e ".[dev]"
-# For the API only, use the leaner requirements-api.txt.
-
-# Core scientific computing
-numpy>=2.3.2
-scipy>=1.16.1
-
-# Visualization (used by the demo scripts and visualization/ module)
-matplotlib>=3.10.5
-plotly>=6.2.0
-seaborn>=0.13.2
+# Minimal runtime for the serverless backend (Vercel auto-detects Python from
+# this root requirements.txt). Intentionally lean — numpy + fastapi only.
+# SciPy is imported lazily, so rk4/euler/verlet work without it.
+#
+# For the FULL project (demo scripts, matplotlib/plotly visualization, dev
+# tooling) install from pyproject instead:  pip install -e .   (or .[dev])
+numpy>=1.26.0
+fastapi>=0.115.0

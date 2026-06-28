@@ -9,10 +9,8 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 render.yaml
-# Anchor to the repo root with a leading slash so these do NOT match the
-# function's own api/requirements.txt (a bare "requirements.txt" pattern would
-# match at any depth and break Python function detection on Vercel).
-/requirements.txt
+# NOTE: do NOT ignore requirements.txt — Vercel detects the Python runtime from
+# the root requirements.txt (kept lean for the serverless function).
 /requirements-api.txt
 frontend/node_modules/
 frontend/dist/

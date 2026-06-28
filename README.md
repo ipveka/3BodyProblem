@@ -73,8 +73,11 @@ Or bring up everything with Docker: `docker compose up --build`.
 
 ### Running the demo scripts
 
+The scripts use matplotlib/plotly, so install the full project (not the lean
+`requirements.txt`, which is only the serverless backend runtime):
+
 ```bash
-pip install -r requirements.txt
+pip install -e .
 python scripts/run_two_body.py
 python scripts/run_three_body.py
 ```
@@ -220,10 +223,11 @@ the API is stateless (request → simulate → response). Config lives in
 3. Deploy. The frontend is served at `/`; `/api/*` is routed to the function.
 
 Notes:
-- The function ships a minimal dependency set (`api/requirements.txt`:
-  fastapi + numpy). SciPy is imported lazily and is **not** bundled, keeping the
-  function well under the serverless size limit. The `"scipy"` integration
-  method is therefore unavailable on Vercel — use `rk4`/`verlet`/`euler`.
+- The function ships a minimal dependency set (the root `requirements.txt`:
+  fastapi + numpy — Vercel detects Python from it). SciPy is imported lazily and
+  is **not** bundled, keeping the function well under the serverless size limit.
+  The `"scipy"` integration method is therefore unavailable on Vercel — use
+  `rk4`/`verlet`/`euler`.
 - No env var is required: the frontend defaults to **same-origin** in
   production, and the API is same-origin (so no CORS).
 - Serverless limits to keep in mind on the free **Hobby** tier: function

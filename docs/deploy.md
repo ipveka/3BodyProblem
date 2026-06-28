@@ -64,7 +64,7 @@ stateless (request → simulate → response). Configuration is in `vercel.json`
 | Frontend | `buildCommand: cd frontend && npm install && npm run build`, `outputDirectory: frontend/dist` |
 | Backend | `api/index.py` exposes the ASGI `app`; `includeFiles` bundles `backend/` + `core/` |
 | Routing | `/api/*` and `/health` rewrite to the function; everything else is the static site |
-| Deps | `api/requirements.txt` (fastapi + numpy only) |
+| Deps | root `requirements.txt` (fastapi + numpy only; Vercel detects Python from it) |
 
 ### Steps
 
