@@ -37,25 +37,31 @@ def _earth_moon() -> PresetOut:
 
 
 def _sun_earth_moon() -> PresetOut:
-    scale = 1000.0  # distances scaled for visualization; masses stay realistic
-    earth_r = 149597870.7 / scale
-    earth_v = _circular_speed(1.989e30, earth_r)
-    moon_r = 384400.0 / scale
-    moon_v = _circular_speed(5.972e24, moon_r)
+    # Real (to-scale) heliocentric system. No distance scaling — scaling lengths
+    # while keeping real masses changes the orbital period (Kepler's 3rd law) and
+    # makes the duration/timestep physically meaningless.
+    sun_mass = 1.989e30
+    earth_mass = 5.972e24
+    earth_r = 149_597_870.7            # 1 AU in km
+    moon_r = 384_400.0                 # km from Earth
+    earth_v = _circular_speed(sun_mass, earth_r)        # ~29.78 km/s
+    moon_v = _circular_speed(earth_mass, moon_r)        # ~1.02 km/s rel. to Earth
     return PresetOut(
         id="sun-earth-moon",
         name="Sun–Earth–Moon",
-        description="Three-body system (distances scaled 1000x for viewing).",
+        description=("To-scale heliocentric system over one year. At true scale "
+                     "the Moon hugs Earth — zoom in, or use the Earth–Moon preset "
+                     "to watch the lunar orbit."),
         request=SimRequest(
             bodies=[
-                BodyIn(mass=1.989e30, position=[0, 0], velocity=[0, 0],
+                BodyIn(mass=sun_mass, position=[0, 0], velocity=[0, 0],
                        name="Sun", color="#ffd700"),
-                BodyIn(mass=5.972e24, position=[earth_r, 0], velocity=[0, earth_v],
+                BodyIn(mass=earth_mass, position=[earth_r, 0], velocity=[0, earth_v],
                        name="Earth", color="#4a90e2"),
                 BodyIn(mass=7.342e22, position=[earth_r + moon_r, 0],
                        velocity=[0, earth_v + moon_v], name="Moon", color="#b0b0b0"),
             ],
-            duration=365 * DAY, n_points=1500, method="rk4",
+            duration=365 * DAY, n_points=2000, method="rk4",
         ),
     )
 
