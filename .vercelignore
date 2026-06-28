@@ -9,7 +9,10 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 render.yaml
-requirements.txt
-requirements-api.txt
+# Anchor to the repo root with a leading slash so these do NOT match the
+# function's own api/requirements.txt (a bare "requirements.txt" pattern would
+# match at any depth and break Python function detection on Vercel).
+/requirements.txt
+/requirements-api.txt
 frontend/node_modules/
 frontend/dist/
